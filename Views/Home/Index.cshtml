@@ -1,6 +1,4 @@
-﻿@model List<Kanban.Models.Column>
-
-@{
+﻿@{
     ViewData["Title"] = "WebFamily";
 }
 
@@ -8,63 +6,31 @@
 
 <button id="addCardBtn" class="btn btn-success mb-3 shadow">Adicionar Card</button>
 
-<div id="myKanban"></div>
+<div class="row" id="myKanban">
+    <div class="col kanban-column" id="todo">
+        <h4 class="bg-danger text-white p-2 rounded">To Do</h4>
+        <div class="kanban-list"></div>
+    </div>
 
-<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editCardForm">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">Editar Card</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="Id" id="editCardId" />
-                    <div class="mb-2">
-                        <input type="text" name="Title" id="editCardTitle" class="form-control" required />
-                    </div>
-                    <div class="mb-2">
-                        <textarea name="Description" id="editCardDescription" class="form-control"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Salvar</button>
-                </div>
-            </form>
-        </div>
+    <div class="col kanban-column" id="doing">
+        <h4 class="bg-warning text-dark p-2 rounded">Doing</h4>
+        <div class="kanban-list"></div>
+    </div>
+
+    <div class="col kanban-column" id="done">
+        <h4 class="bg-success text-white p-2 rounded">Done</h4>
+        <div class="kanban-list"></div>
     </div>
 </div>
 
 @section Styles {
     <style>
-        #myKanban {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-        }
-
-        .kanban-board {
-            flex: 1;
-            min-width: 250px;
-            max-width: 33%;
-        }
-
-        [data-id="_todo"] {
-            background-color: #f8d7da;
-            border-radius: 8px;
+        /* Colunas com tom uniforme mais escuro */
+        .kanban-list {
+            min-height: 200px;
             padding: 10px;
-        }
-
-        [data-id="_doing"] {
-            background-color: #fff3cd;
+            background-color: #d6d8d9; /* cinza médio */
             border-radius: 8px;
-            padding: 10px;
-        }
-
-        [data-id="_done"] {
-            background-color: #d4edda;
-            border-radius: 8px;
-            padding: 10px;
         }
 
         .kanban-item {
@@ -72,127 +38,71 @@
             border-radius: 6px;
             padding: 10px;
             margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             position: relative;
-            /* Fix para arraste no mobile */
-            touch-action: none;
-            -webkit-user-drag: element;
-            user-select: none;
         }
+
+            .kanban-item strong {
+                display: block;
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+
+            .kanban-item small {
+                color: #333;
+            }
 
         .btn-delete {
             cursor: pointer;
-            float: right;
             color: #dc3545;
+            position: absolute;
+            top: 5px;
+            right: 10px;
         }
+
+            .btn-delete:hover {
+                color: #a71d2a;
+            }
     </style>
 }
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
-        var kanban = new jKanban({
-          element: '#myKanban',
-          boards: [
-            { id: '_todo', title: 'To Do', item: [] },
-            { id: '_doing', title: 'Doing', item: [] },
-            { id: '_done', title: 'Done', item: [] }
-          ],
-          dragItems: true
+        // Inicializar SortableJS para cada coluna
+        ['todo', 'doing', 'done'].forEach(id => {
+            new Sortable(document.querySelector(`#${id} .kanban-list`), {
+                group: 'kanban',
+                animation: 150
+            });
         });
 
-        // Adicionar card
+        // Botão de adicionar card
         document.getElementById("addCardBtn").addEventListener("click", function(){
-          const tempId = Date.now();
-          const title = prompt("Digite o título do card:");
-          const description = prompt("Digite a descrição do card:");
-          if (!title) return;
+            const tempId = Date.now();
+            const title = prompt("Digite o título do card:");
+            const description = prompt("Digite a descrição/assunto do card:");
+            if (!title) return;
 
-          kanban.addElement('_todo', {
-            id: 'card' + tempId,
-            title: `
-              <div class="kanban-item">
-                <strong>${title}</strong><br>
-                <small>${description || ""}</small>
-                <span class="btn-delete" onclick="deleteCard(event, ${tempId})">
-                  <i class="bi bi-trash"></i>
-                </span>
-              </div>`
-          });
+            const card = document.createElement("div");
+            card.className = "kanban-item";
+            card.dataset.id = tempId;
 
-          fetch('/Card/Create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `Title=${encodeURIComponent(title)}&Description=${encodeURIComponent(description || '')}&ColumnId=1`
-          })
-          .then(res => res.json())
-          .then(data => {
-            const el = document.querySelector(`[data-eid="card${tempId}"]`);
-            if (el) el.setAttribute("data-eid", "card" + data.id);
-          });
+            card.innerHTML =
+                "<strong>" + title + "</strong><br>" +
+                "<small>" + (description || "") + "</small>" +
+                "<span class='btn-delete' onclick='deleteCard(event," + tempId + ")'>" +
+                "<i class='bi bi-trash'></i>" +
+                "</span>";
+
+            document.querySelector("#todo .kanban-list").appendChild(card);
         });
 
-        // Editar card
-        kanban.on('click', function(el){
-          const cardId = el.dataset.eid.replace('card','');
-          const cardTitle = el.querySelector("strong")?.innerText || el.innerText;
-          const cardDescription = el.querySelector("small")?.innerText || "";
-
-          document.getElementById("editCardId").value = cardId;
-          document.getElementById("editCardTitle").value = cardTitle;
-          document.getElementById("editCardDescription").value = cardDescription;
-
-          new bootstrap.Modal(document.getElementById("editModal")).show();
-        });
-
-        // Salvar edição
-        document.getElementById("editCardForm").addEventListener("submit", function(e){
-          e.preventDefault();
-
-          const id = document.getElementById("editCardId").value;
-          const title = document.getElementById("editCardTitle").value;
-          const description = document.getElementById("editCardDescription").value;
-
-          fetch('/Card/Edit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `Id=${encodeURIComponent(id)}&Title=${encodeURIComponent(title)}&Description=${encodeURIComponent(description)}`
-          }).then(() => {
-            const el = document.querySelector(`[data-eid="card${id}"]`);
-            if (el) {
-              el.innerHTML =
-              `<div class="kanban-item">
-                 <strong>${title}</strong><br>
-                 <small>${description}</small>
-                 <span class="btn-delete" onclick="deleteCard(event, ${id})">
-                   <i class="bi bi-trash"></i>
-                 </span>
-               </div>`;
-            }
-            bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
-          });
-        });
-
-        // Excluir card
+        // Função de excluir card
         function deleteCard(e, id){
-          e.stopPropagation();
-          kanban.removeElement('card' + id);
-          fetch('/Card/Delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'id=' + encodeURIComponent(id)
-          });
+            e.stopPropagation();
+            const card = document.querySelector('.kanban-item[data-id="' + id + '"]');
+            if (card) card.remove();
         }
-
-        // Mover card
-        kanban.on('dragend', function(el){
-          const cardId = el.dataset.eid.replace('card','');
-          const newColumn = el.parentElement.parentElement.getAttribute('data-id');
-
-          fetch('/Card/Move', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `id=${encodeURIComponent(cardId)}&columnId=${encodeURIComponent(newColumn)}`
-          });
-        });
     </script>
 }
