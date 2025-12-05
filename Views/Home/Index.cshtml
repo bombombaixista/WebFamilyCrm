@@ -1,25 +1,22 @@
 ﻿@model List<Kanban.Models.Column>
 
 @{
-    ViewData["Title"] = "Kanban";
+    ViewData["Title"] = "WebFamily";
 }
 
-<h2 class="text-center mb-4">Quadro Kanban</h2>
+<h2 class="text-center mb-4 bg-primary text-white p-3 rounded shadow">WebFamily</h2>
 
-<!-- Botão para adicionar card -->
-<button id="addCardBtn" class="btn btn-success mb-3">Adicionar Card</button>
+<button id="addCardBtn" class="btn btn-success mb-3 shadow">Adicionar Card</button>
 
-<!-- Container do Kanban -->
 <div id="myKanban"></div>
 
-<!-- Modal de edição -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="editCardForm">
-                <div class="modal-header">
+                <div class="modal-header bg-info text-white">
                     <h5 class="modal-title">Editar Card</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="Id" id="editCardId" />
@@ -38,9 +35,57 @@
     </div>
 </div>
 
+@section Styles {
+    <style>
+        #myKanban {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .kanban-board {
+            flex: 1;
+            min-width: 250px;
+            max-width: 33%;
+        }
+
+        [data-id="_todo"] {
+            background-color: #f8d7da;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        [data-id="_doing"] {
+            background-color: #fff3cd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        [data-id="_done"] {
+            background-color: #d4edda;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .kanban-item {
+            background: #fff;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .btn-delete {
+            cursor: pointer;
+            float: right;
+            color: #dc3545;
+        }
+    </style>
+}
+
 @section Scripts {
     <script>
-        // Inicializa o Kanban
         var kanban = new jKanban({
           element: '#myKanban',
           boards: [
@@ -50,39 +95,36 @@
           ]
         });
 
-        // ➡️ Adicionar card
+        // Adicionar card
         document.getElementById("addCardBtn").addEventListener("click", function(){
           const tempId = Date.now();
           const title = prompt("Digite o título do card:");
           const description = prompt("Digite a descrição do card:");
-
           if (!title) return;
 
-          // Cria visualmente
           kanban.addElement('_todo', {
             id: 'card' + tempId,
             title: `
-              <div>
+              <div class="kanban-item">
                 <strong>${title}</strong><br>
                 <small>${description || ""}</small>
-                <span class="btn-delete" onclick="deleteCard(${tempId})">🗑️</span>
+                <span class="btn-delete" onclick="deleteCard(event, ${tempId})">🗑️</span>
               </div>`
           });
 
-          // Salva no banco e atualiza ID real
           fetch('/Card/Create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `Title=${title}&Description=${description}&ColumnId=1`
+            body: `Title=${encodeURIComponent(title)}&Description=${encodeURIComponent(description || '')}&ColumnId=1`
           })
           .then(res => res.json())
           .then(data => {
-            document.querySelector(`[data-eid="card${tempId}"]`)
-                    .setAttribute("data-eid", "card" + data.id);
+            const el = document.querySelector(`[data-eid="card${tempId}"]`);
+            if (el) el.setAttribute("data-eid", "card" + data.id);
           });
         });
 
-        // ➡️ Editar card ao clicar no card inteiro
+        // Editar card
         kanban.on('click', function(el){
           const cardId = el.dataset.eid.replace('card','');
           const cardTitle = el.querySelector("strong")?.innerText || el.innerText;
@@ -92,11 +134,10 @@
           document.getElementById("editCardTitle").value = cardTitle;
           document.getElementById("editCardDescription").value = cardDescription;
 
-          const modal = new bootstrap.Modal(document.getElementById("editModal"));
-          modal.show();
+          new bootstrap.Modal(document.getElementById("editModal")).show();
         });
 
-        // ➡️ Salvar edição
+        // Salvar edição
         document.getElementById("editCardForm").addEventListener("submit", function(e){
           e.preventDefault();
 
@@ -107,29 +148,33 @@
           fetch('/Card/Edit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `Id=${id}&Title=${title}&Description=${description}`
+            body: `Id=${encodeURIComponent(id)}&Title=${encodeURIComponent(title)}&Description=${encodeURIComponent(description)}`
           }).then(() => {
-            document.querySelector(`[data-eid="card${id}"]`).innerHTML =
-              `<div>
+            const el = document.querySelector(`[data-eid="card${id}"]`);
+            if (el) {
+              el.innerHTML =
+              `<div class="kanban-item">
                  <strong>${title}</strong><br>
                  <small>${description}</small>
-                 <span class="btn-delete" onclick="deleteCard(${id})">🗑️</span>
+                 <span class="btn-delete" onclick="deleteCard(event, ${id})">🗑️</span>
                </div>`;
+            }
             bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
           });
         });
 
-        // ➡️ Excluir card
-        function deleteCard(id){
+        // Excluir card (com stopPropagation)
+        function deleteCard(e, id){
+          e.stopPropagation(); // impede que o clique vire drag
           kanban.removeElement('card' + id);
           fetch('/Card/Delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'id=' + id
+            body: 'id=' + encodeURIComponent(id)
           });
         }
 
-        // ➡️ Mover card
+        // Mover card
         kanban.on('dragend', function(el){
           const cardId = el.dataset.eid.replace('card','');
           const newColumn = el.parentElement.parentElement.getAttribute('data-id');
@@ -137,7 +182,7 @@
           fetch('/Card/Move', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `id=${cardId}&columnId=${newColumn}`
+            body: `id=${encodeURIComponent(cardId)}&columnId=${encodeURIComponent(newColumn)}`
           });
         });
     </script>

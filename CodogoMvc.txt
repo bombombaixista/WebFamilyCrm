@@ -1,0 +1,284 @@
+KanbanBr
+
+meu codigo gostaria de acertar os erros
+
+Controllers
+
+AccountController
+
+using KanbanBr.Data;
+using KanbanBr.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace KanbanBr.Controllers
+{
+    public class AccountController : Controller
+    {
+        private readonly UserManager<UsuarioIdentity> _userManager;
+        private readonly SignInManager<UsuarioIdentity> _signInManager;
+        private readonly AppDbContext _db;
+
+        public AccountController(UserManager<UsuarioIdentity> userManager,
+                                 SignInManager<UsuarioIdentity> signInManager,
+                                 AppDbContext db)
+        {
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _db = db;
+        }
+
+        [HttpGet]
+        public IActionResult Register() => View();
+
+        [HttpPost]
+        public async Task<IActionResult> Register(string nome, string email, string password)
+        {
+            var user = new UsuarioIdentity { UserName = email, Email = email, NomeCompleto = nome };
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (result.Succeeded)
+            {
+                var grupo = await _db.Grupos.FirstOrDefaultAsync(g => g.Nome == "Consultório");
+                if (grupo == null)
+                {
+                    grupo = new Grupo { Nome = "Consultório" };
+                    _db.Grupos.Add(grupo);
+                    await _db.SaveChangesAsync();
+                }
+
+                _db.UsuariosGrupos.Add(new UsuarioGrupo { UsuarioId = user.Id, GrupoId = grupo.GrupoId });
+                await _db.SaveChangesAsync();
+
+                await _signInManager.SignInAsync(user, false);
+                return RedirectToAction("Index", "Home");
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError("", error.Description);
+
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult Login() => View();
+
+        [HttpPost]
+        public async Task<IActionResult> Login(string email, string password)
+        {
+            var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
+            if (result.Succeeded) return RedirectToAction("Index", "Home");
+
+            ModelState.AddModelError("", "Login inválido.");
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
+        }
+    }
+}
+
+
+GrupoController
+
+using KanbanBr.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+
+namespace KanbanBr.Controllers
+{
+    [Authorize]
+    public class GruposController : Controller
+    {
+        private readonly AppDbContext _db;
+
+        public GruposController(AppDbContext db)
+        {
+            _db = db;
+        }
+
+        // Lista todos os grupos
+        public async Task<IActionResult> Index()
+        {
+            var grupos = await _db.Grupos
+                .Include(g => g.Usuarios)   // carrega usuários associados
+                .Include(g => g.Quadros)    // carrega quadros associados
+                .ToListAsync();
+
+            return View(grupos);
+        }
+
+        // Exibe formulário de criação
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // Cria grupo
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(string nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+            {
+                ModelState.AddModelError("Nome", "Nome é obrigatório.");
+                return View();
+            }
+
+            var grupo = new Grupo { Nome = nome };
+            _db.Grupos.Add(grupo);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Editar grupo
+        public async Task<IActionResult> Edit(int id)
+        {
+            var grupo = await _db.Grupos.FindAsync(id);
+            if (grupo == null) return NotFound();
+
+            return View(grupo);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, string nome)
+        {
+            var grupo = await _db.Grupos.FindAsync(id);
+            if (grupo == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(nome))
+            {
+                ModelState.AddModelError("Nome", "Nome é obrigatório.");
+                return View(grupo);
+            }
+
+            grupo.Nome = nome;
+            _db.Grupos.Update(grupo);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Excluir grupo
+        public async Task<IActionResult> Delete(int id)
+        {
+            var grupo = await _db.Grupos.FindAsync(id);
+            if (grupo == null) return NotFound();
+
+            _db.Grupos.Remove(grupo);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+    }
+}
+
+
+
+
+
+
+
+QuadroController
+
+
+using KanbanBr.Data;
+using KanbanBr.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+public class QuadrosController : Controller
+{
+    private readonly AppDbContext _db;
+
+    public QuadrosController(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    // Action para criar um novo quadro
+    [HttpPost]
+    public async Task<IActionResult> Create(int grupoId, string nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return BadRequest("Nome é obrigatório.");
+
+        // Aqui entra o seu código
+        var Quadro = new KanbanBr.Models.Quadro { Nome = nome, GrupoId = grupoId };
+        _db.Quadros.Add(Quadro);
+        await _db.SaveChangesAsync();
+
+        // Redireciona para a lista de quadros do grupo
+        return RedirectToAction("Index", new { grupoId });
+    }
+}
+
+
+
+
+
+TarefasController
+
+
+
+using KanbanBr.Data;
+using KanbanBr.Models;
+using KanbanBr.ViewModels;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace KanbanBr.Controllers
+{
+    public class TarefasController : Controller
+    {
+        private readonly AppDbContext _db;
+        private readonly UserManager<UsuarioIdentity> _userManager;
+
+        public TarefasController(AppDbContext db, UserManager<UsuarioIdentity> userManager)
+        {
+            _db = db;
+            _userManager = userManager;
+        }
+
+        // Action que lista tarefas de um grupo
+        public async Task<IActionResult> PorGrupo(int grupoId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            // verifica se o usuário é membro do grupo
+            var membro = await _db.UsuariosGrupos
+                .AnyAsync(ug => ug.UsuarioId == user.Id && ug.GrupoId == grupoId);
+
+            if (!membro) return Forbid();
+
+            // consulta tarefas do grupo e projeta para a ViewModel
+            var tarefas = await _db.Tarefas
+                .Include(t => t.Quadro).ThenInclude(q => q.Grupo)
+                .Include(t => t.Responsavel)
+                .Where(t => t.Quadro.GrupoId == grupoId)
+                .Select(t => new TarefaListaVM
+                {
+                    NomeGrupo = t.Quadro.Grupo.Nome,
+                    NomeQuadro = t.Quadro.Nome,
+                    Tarefa = t.Titulo,
+                    Status = t.Status.ToString(),
+                    Responsavel = t.Responsavel != null
+                        ? t.Responsavel.NomeCompleto
+                        : "(sem responsável)"
+                })
+                .ToListAsync();
+
+            return View(tarefas);
+        }
+    }
+}
