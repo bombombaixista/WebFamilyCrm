@@ -16,22 +16,22 @@ namespace Kanban.Controllers
             _context = context;
         }
 
-        // Tela inicial de login
+        // GET: /Login
+        [HttpGet]
         public IActionResult Index()
         {
             return View();
         }
 
-        // POST: Login
+        // POST: /Login
         [HttpPost]
         public async Task<IActionResult> Index(string email, string senha)
         {
-            // Aqui você valida o usuário no banco
-            var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == email && u.SenhaHash == senha);
+            var usuario = _context.Usuarios
+                .FirstOrDefault(u => u.Email == email && u.SenhaHash == senha);
 
             if (usuario != null)
             {
-                // Cria as claims (informações do usuário)
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, usuario.Username),
@@ -42,10 +42,8 @@ namespace Kanban.Controllers
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
 
-                // Cria o cookie de autenticação
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-                // Redireciona para a Home
                 return RedirectToAction("Index", "Home");
             }
 
@@ -53,19 +51,14 @@ namespace Kanban.Controllers
             return View();
         }
 
-        // Logout
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Index", "Login");
-        }
-
-        // Tela de cadastro
+        // GET: /Login/Cadastro
+        [HttpGet]
         public IActionResult Cadastro()
         {
             return View();
         }
 
+        // POST: /Login/Cadastro
         [HttpPost]
         public IActionResult Cadastro(string username, string email, string senha)
         {
@@ -73,7 +66,7 @@ namespace Kanban.Controllers
             {
                 Username = username,
                 Email = email,
-                SenhaHash = senha, // ⚠️ ideal usar hash real (ex: BCrypt)
+                SenhaHash = senha, // ⚠️ ideal usar hash seguro
                 Role = "User",
                 DataCriacao = DateTime.Now
             };
@@ -81,6 +74,13 @@ namespace Kanban.Controllers
             _context.Usuarios.Add(novoUsuario);
             _context.SaveChanges();
 
+            return RedirectToAction("Index", "Login");
+        }
+
+        // GET: /Login/Logout
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Index", "Login");
         }
     }
