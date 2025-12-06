@@ -2,22 +2,31 @@
     ViewData["Title"] = "Cadastro";
 }
 
-<h2>Cadastro de Usuário</h2>
+<div class="d-flex justify-content-center align-items-center vh-100">
+    <div class="card shadow-lg p-4" style="width: 400px;">
+        <h2 class="text-center mb-4 text-primary">Cadastro</h2>
 
-<form method="post" asp-action="Cadastro">
-    <label>Usuário:</label>
-    <input type="text" name="username" required />
-    <br />
+        <form method="post" asp-action="Cadastro">
+            <div class="mb-3">
+                <label class="form-label">Usuário</label>
+                <input type="text" name="username" class="form-control" required />
+            </div>
 
-    <label>Email:</label>
-    <input type="email" name="email" required />
-    <br />
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" required />
+            </div>
 
-    <label>Senha:</label>
-    <input type="password" name="senha" required />
-    <br />
+            <div class="mb-3">
+                <label class="form-label">Senha</label>
+                <input type="password" name="senha" class="form-control" required />
+            </div>
 
-    <button type="submit">Cadastrar</button>
-</form>
+            <button type="submit" class="btn btn-success w-100">Cadastrar</button>
+        </form>
 
-<p>Já tem conta? <a asp-controller="Login" asp-action="Index">Faça login aqui</a></p>
+        <div class="text-center mt-3">
+            <p>Já tem conta? <a asp-controller="Login" asp-action="Index">Faça login aqui</a></p>
+        </div>
+    </div>
+</div>
