@@ -4,105 +4,212 @@
 
 <h2 class="text-center mb-4 bg-primary text-white p-3 rounded shadow">WebFamily</h2>
 
-<button id="addCardBtn" class="btn btn-success mb-3 shadow">Adicionar Card</button>
+<div class="d-flex mb-3">
+    <button id="addCardBtn" class="btn btn-success shadow me-2">Adicionar Card</button>
+    <select id="prioritySelect" class="form-select w-auto">
+        <option value="Alta">Alta</option>
+        <option value="Média" selected>Média</option>
+        <option value="Baixa">Baixa</option>
+    </select>
+</div>
 
 <div class="row" id="myKanban">
     <div class="col kanban-column" id="todo">
-        <h4 class="bg-danger text-white p-2 rounded">To Do</h4>
+        <h4 class="bg-danger text-white p-2 rounded">To Do (<span class="count">0</span>)</h4>
         <div class="kanban-list"></div>
     </div>
 
     <div class="col kanban-column" id="doing">
-        <h4 class="bg-warning text-dark p-2 rounded">Doing</h4>
+        <h4 class="bg-warning text-dark p-2 rounded">Doing (<span class="count">0</span>)</h4>
         <div class="kanban-list"></div>
     </div>
 
     <div class="col kanban-column" id="done">
-        <h4 class="bg-success text-white p-2 rounded">Done</h4>
+        <h4 class="bg-success text-white p-2 rounded">Done (<span class="count">0</span>)</h4>
         <div class="kanban-list"></div>
     </div>
 </div>
 
-@section Styles {
-    <style>
-        /* Colunas com tom uniforme mais escuro */
-        .kanban-list {
-            min-height: 200px;
-            padding: 10px;
-            background-color: #d6d8d9; /* cinza médio */
-            border-radius: 8px;
+<style>
+    .kanban-list {
+        min-height: 200px;
+        padding: 10px;
+        background-color: #d6d8d9;
+        border-radius: 8px;
+    }
+
+    .kanban-item {
+        background: #fff;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        position: relative;
+        cursor: pointer;
+    }
+
+        .kanban-item strong {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 4px;
         }
 
-        .kanban-item {
-            background: #fff;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            position: relative;
+        .kanban-item small {
+            color: #333;
         }
 
-            .kanban-item strong {
-                display: block;
-                font-weight: bold;
-                margin-bottom: 4px;
-            }
+    .btn-delete {
+        cursor: pointer;
+        color: #dc3545;
+        position: absolute;
+        top: 5px;
+        right: 10px;
+    }
 
-            .kanban-item small {
-                color: #333;
-            }
-
-        .btn-delete {
-            cursor: pointer;
-            color: #dc3545;
-            position: absolute;
-            top: 5px;
-            right: 10px;
+        .btn-delete:hover {
+            color: #a71d2a;
         }
 
-            .btn-delete:hover {
-                color: #a71d2a;
-            }
-    </style>
-}
+    /* Badges de prioridade */
+    .priority {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        margin-top: 5px;
+    }
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script>
-        // Inicializar SortableJS para cada coluna
-        ['todo', 'doing', 'done'].forEach(id => {
-            new Sortable(document.querySelector(`#${id} .kanban-list`), {
-                group: 'kanban',
-                animation: 150
-            });
+    .priority-alta {
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+    .priority-media {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .priority-baixa {
+        background-color: #198754;
+        color: #fff;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    // Inicializar SortableJS
+    ['todo', 'doing', 'done'].forEach(id => {
+        new Sortable(document.querySelector('#' + id + ' .kanban-list'), {
+            group: 'kanban',
+            animation: 150,
+            onSort: saveState
+        });
+    });
+
+    // Adicionar card
+    document.getElementById("addCardBtn").addEventListener("click", function(){
+        const tempId = Date.now();
+        const title = prompt("Digite o título do card:");
+        const description = prompt("Digite a descrição/assunto do card:");
+        const priority = document.getElementById("prioritySelect").value;
+        if (!title) return;
+
+        const card = createCard(tempId, title, description, priority);
+        document.querySelector("#todo .kanban-list").appendChild(card);
+
+        updateCounts();
+        saveState();
+    });
+
+    function createCard(id, title, description, priority){
+        const card = document.createElement("div");
+        card.className = "kanban-item";
+        card.dataset.id = id;
+        card.dataset.priority = priority;
+
+        card.innerHTML =
+            "<strong>" + title + "</strong><br>" +
+            "<small>" + (description || "") + "</small><br>" +
+            "<span class='priority " + getPriorityClass(priority) + "'>" + priority + "</span>" +
+            "<span class='btn-delete' onclick='deleteCard(event," + id + ")'>" +
+            "<i class='bi bi-trash'></i>" +
+            "</span>";
+
+        card.addEventListener("click", function(e){
+            if (e.target.closest(".btn-delete")) return;
+            openEditModal(id, title, description, priority);
         });
 
-        // Botão de adicionar card
-        document.getElementById("addCardBtn").addEventListener("click", function(){
-            const tempId = Date.now();
-            const title = prompt("Digite o título do card:");
-            const description = prompt("Digite a descrição/assunto do card:");
-            if (!title) return;
+        return card;
+    }
 
-            const card = document.createElement("div");
-            card.className = "kanban-item";
-            card.dataset.id = tempId;
+    function deleteCard(e, id){
+        e.stopPropagation();
+        const card = document.querySelector('.kanban-item[data-id="' + id + '"]');
+        if (card) card.remove();
+        updateCounts();
+        saveState();
+    }
 
-            card.innerHTML =
-                "<strong>" + title + "</strong><br>" +
-                "<small>" + (description || "") + "</small>" +
-                "<span class='btn-delete' onclick='deleteCard(event," + tempId + ")'>" +
-                "<i class='bi bi-trash'></i>" +
-                "</span>";
-
-            document.querySelector("#todo .kanban-list").appendChild(card);
-        });
-
-        // Função de excluir card
-        function deleteCard(e, id){
-            e.stopPropagation();
-            const card = document.querySelector('.kanban-item[data-id="' + id + '"]');
-            if (card) card.remove();
+    function getPriorityClass(priority){
+        if (!priority) return "priority-media";
+        switch(priority.toLowerCase()){
+            case "alta": return "priority-alta";
+            case "baixa": return "priority-baixa";
+            default: return "priority-media";
         }
-    </script>
-}
+    }
+
+    // Atualizar contador de cartões
+    function updateCounts(){
+        ['todo','doing','done'].forEach(id => {
+            const count = document.querySelectorAll('#' + id + ' .kanban-item').length;
+            document.querySelector('#' + id + ' .count').textContent = count;
+        });
+    }
+
+    // Ordenar por prioridade
+    function sortByPriority(list){
+        const cards = Array.from(list.children);
+        cards.sort((a,b) => {
+            const order = { "Alta":1, "Média":2, "Baixa":3 };
+            return order[a.dataset.priority] - order[b.dataset.priority];
+        });
+        cards.forEach(c => list.appendChild(c));
+    }
+
+    // Salvar estado no localStorage
+    function saveState(){
+        const data = {};
+        ['todo','doing','done'].forEach(id => {
+            const cards = Array.from(document.querySelectorAll('#' + id + ' .kanban-item')).map(c => ({
+                id: c.dataset.id,
+                title: c.querySelector("strong").textContent,
+                description: c.querySelector("small").textContent,
+                priority: c.dataset.priority
+            }));
+            data[id] = cards;
+        });
+        localStorage.setItem("kanbanData", JSON.stringify(data));
+    }
+
+    // Carregar estado
+    function loadState(){
+        const data = JSON.parse(localStorage.getItem("kanbanData") || "{}");
+        ['todo','doing','done'].forEach(id => {
+            const list = document.querySelector('#' + id + ' .kanban-list');
+            list.innerHTML = "";
+            if (data[id]){
+                data[id].forEach(c => {
+                    const card = createCard(c.id, c.title, c.description, c.priority);
+                    list.appendChild(card);
+                });
+                sortByPriority(list);
+            }
+        });
+        updateCounts();
+    }
+
+    // Inicialização
+    window.onload = loadState;
+</script>

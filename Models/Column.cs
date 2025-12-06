@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
-
+﻿// Models/Column.cs
 namespace Kanban.Models
 {
     public class Column
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public List<Card> Cards { get; set; } = new();
+        public string Name { get; set; } = string.Empty;   // antes era Nome
+        public ICollection<Card> Cards { get; set; } = new List<Card>();
     }
 }
