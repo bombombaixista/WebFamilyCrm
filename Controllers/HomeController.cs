@@ -1,16 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Kanban.Controllers
 {
-    [Authorize] // 🔒 exige login para acessar qualquer action deste controller
+    // 🚀 Controller sem autenticação
     public class HomeController : Controller
     {
+        // Tela inicial → Views/Home/Index.cshtml
         public IActionResult Index()
         {
             return View();
         }
 
+        // Exemplo de outra página → Views/Home/Privacy.cshtml
         public IActionResult Privacy()
         {
             return View();
