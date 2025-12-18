@@ -1,0 +1,133 @@
+﻿@{
+    ViewData["Title"] = "Clientes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="mb-4 bg-primary text-white p-3 rounded shadow">
+    Cadastro de Clientes
+</h2>
+
+<!-- FORMULÁRIO -->
+<form id="clienteForm" class="card p-3 shadow mb-4">
+    <div class="row">
+
+        <div class="col-md-6 mb-2">
+            <label class="form-label">Nome</label>
+            <input id="nome" class="form-control" required />
+        </div>
+
+        <div class="col-md-6 mb-2">
+            <label class="form-label">Email</label>
+            <input id="email" type="email" class="form-control" required />
+        </div>
+
+        <div class="col-md-4 mb-2">
+            <label class="form-label">Telefone</label>
+            <input id="telefone" class="form-control" />
+        </div>
+
+        <div class="col-md-4 mb-2">
+            <label class="form-label">Empresa</label>
+            <input id="empresa" class="form-control" />
+        </div>
+
+        <div class="col-md-4 mb-2">
+            <label class="form-label">Cargo</label>
+            <input id="cargo" class="form-control" />
+        </div>
+
+        <div class="col-md-4 mb-2">
+            <label class="form-label">Origem</label>
+            <select id="origem" class="form-select">
+                <option value="Site">Site</option>
+                <option value="WhatsApp">WhatsApp</option>
+                <option value="Indicação">Indicação</option>
+                <option value="Outro">Outro</option>
+            </select>
+        </div>
+
+        <div class="col-md-8 mb-2">
+            <label class="form-label">Observações</label>
+            <textarea id="observacoes" class="form-control" rows="2"></textarea>
+        </div>
+    </div>
+
+    <button class="btn btn-success mt-3">
+        Salvar Cliente
+    </button>
+</form>
+
+<!-- LISTA -->
+<table class="table table-striped shadow">
+    <thead class="table-dark">
+        <tr>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Empresa</th>
+            <th>Origem</th>
+            <th width="120">Ações</th>
+        </tr>
+    </thead>
+    <tbody id="clientesTable"></tbody>
+</table>
+
+<!-- SCRIPT -->
+<script>
+    const form = document.getElementById("clienteForm");
+    const table = document.getElementById("clientesTable");
+
+    function carregarClientes() {
+        const clientes = JSON.parse(localStorage.getItem("clientes") || "[]");
+        table.innerHTML = "";
+
+        clientes.forEach((c, index) => {
+            table.innerHTML += `
+                <tr>
+                    <td>${c.nome}</td>
+                    <td>${c.email}</td>
+                    <td>${c.empresa}</td>
+                    <td>${c.origem}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm"
+                                onclick="excluirCliente(${index})">
+                            Excluir
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function excluirCliente(index) {
+        if (!confirm("Deseja excluir este cliente?")) return;
+
+        const clientes = JSON.parse(localStorage.getItem("clientes") || "[]");
+        clientes.splice(index, 1);
+        localStorage.setItem("clientes", JSON.stringify(clientes));
+        carregarClientes();
+    }
+
+    form.addEventListener("submit", e => {
+        e.preventDefault();
+
+        const cliente = {
+            nome: nome.value,
+            email: email.value,
+            telefone: telefone.value,
+            empresa: empresa.value,
+            cargo: cargo.value,
+            origem: origem.value,
+            observacoes: observacoes.value,
+            dataCadastro: new Date()
+        };
+
+        const clientes = JSON.parse(localStorage.getItem("clientes") || "[]");
+        clientes.push(cliente);
+        localStorage.setItem("clientes", JSON.stringify(clientes));
+
+        form.reset();
+        carregarClientes();
+    });
+
+    carregarClientes();
+</script>

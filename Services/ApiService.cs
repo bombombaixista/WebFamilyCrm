@@ -30,11 +30,12 @@ namespace Kanban.Services
             var response = await _http.PostAsJsonAsync("api/clientes", new
             {
                 nome,
-                senha
+                senha // 🔹 envia exatamente o que foi digitado
             });
 
             return response.IsSuccessStatusCode;
         }
+
     }
 
     public class LoginResponse

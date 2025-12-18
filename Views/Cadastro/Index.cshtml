@@ -5,19 +5,12 @@
 <div class="container mt-5" style="max-width: 400px;">
     <h2 class="text-center mb-4">Cadastro</h2>
 
-    <form asp-action="Index" method="post" class="card p-4 shadow-sm">
-        <div class="mb-3">
-            <label class="form-label">Nome</label>
-            <input name="nome" class="form-control" required />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Senha</label>
-            <input name="senha" type="password" class="form-control" required />
-        </div>
-
-        <button class="btn btn-success w-100">Cadastrar</button>
+    <form asp-action="Index" method="post">
+        <input type="text" name="nome" required />
+        <input type="password" name="senha" required />
+        <button type="submit">Cadastrar</button>
     </form>
+
 
     @if (ViewBag.Error != null)
     {

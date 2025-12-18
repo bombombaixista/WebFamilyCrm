@@ -1,4 +1,4 @@
-# Base runtime (ASP.NET Core 8)
+# Runtime base (ASP.NET Core 8)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
@@ -6,8 +6,9 @@ WORKDIR /app
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Copia os arquivos publicados
-COPY . .
+# Copia apenas os binários já publicados
+# Ajuste o caminho conforme onde está sua pasta publish
+COPY ./bin/Release/net8.0/publish .
 
 # Expõe a porta
 EXPOSE 8080

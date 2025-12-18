@@ -1,13 +1,21 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Kanban.Data;
 using Kanban.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient<ApiService>(client =>
-{
-    client.BaseAddress = new Uri("https://webfamilyhomeapi-production.up.railway.app/");
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+builder.Services.AddDbContext<SalesPipelineContext>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        ServerVersion.AutoDetect(
+            builder.Configuration.GetConnectionString("DefaultConnection")
+        )
+    )
+);
+
+// 👇 ISSO AQUI É A CHAVE
+builder.Services.AddHttpClient<ApiService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

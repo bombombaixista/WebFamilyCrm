@@ -1,18 +1,20 @@
-﻿using Kanban.Services;
+﻿using Kanban.Data;
+using Kanban.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kanban.Controllers
 {
     public class LoginController : Controller
     {
-        private readonly ApiService _apiService;
+        private readonly SalesPipelineContext _context;
 
-        public LoginController(ApiService apiService)
+        public LoginController(SalesPipelineContext context)
         {
-            _apiService = apiService;
+            _context = context;
         }
 
         [HttpGet]
@@ -24,9 +26,16 @@ namespace Kanban.Controllers
         [HttpPost]
         public async Task<IActionResult> Index(string nome, string senha)
         {
-            var usuario = await _apiService.LoginAsync(nome, senha);
+            if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(senha))
+            {
+                ViewBag.Error = "Informe usuário e senha";
+                return View();
+            }
 
-            if (usuario == null)
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Login == nome);
+
+            if (user == null || user.PasswordHash != senha)
             {
                 ViewBag.Error = "Usuário ou senha inválidos";
                 return View();
@@ -34,8 +43,8 @@ namespace Kanban.Controllers
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, usuario.Nome),
-                new Claim("UserId", usuario.Id.ToString())
+                new Claim(ClaimTypes.Name, user.Nome),
+                new Claim("UserId", user.Id.ToString())
             };
 
             var identity = new ClaimsIdentity(
@@ -48,7 +57,7 @@ namespace Kanban.Controllers
                 new ClaimsPrincipal(identity)
             );
 
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Leads");
         }
 
         public async Task<IActionResult> Logout()
