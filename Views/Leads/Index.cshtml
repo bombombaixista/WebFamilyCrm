@@ -19,24 +19,42 @@
 </div>
 
 <div class="row" id="pipelineKanban">
-    @foreach (var stage in Model.Stages)
-    {
-        <div class="col kanban-column" data-stage-id="@stage.Id" id="stage-@stage.Id">
-            <h4 class="bg-secondary text-white p-2 rounded">@stage.Name (<span class="count">0</span>)</h4>
-            <div class="kanban-list bg-light">
-                @foreach (var deal in Model.Deals.Where(d => d.StageId == stage.Id))
-                {
-                    <div class="kanban-item" data-id="@deal.Id" data-priority="@deal.Priority">
-                        <strong>@deal.Title</strong>
-                        <small>@deal.Description</small><br />
-                        <span class="priority @deal.Priority.ToLower()">@deal.Priority</span>
-                        <span class="btn-delete" onclick="deleteDeal(@deal.Id)"><i class="bi bi-trash"></i></span>
-                        <small>R$ @deal.Value - Prob: @deal.Probability%</small>
-                    </div>
-                }
-            </div>
-        </div>
-    }
+
+    <div class="col kanban-column" data-stage-id="1">
+        <h4 class="bg-secondary text-white p-2 rounded">
+            Lead (<span class="count">0</span>)
+        </h4>
+        <div class="kanban-list bg-light"></div>
+    </div>
+
+    <div class="col kanban-column" data-stage-id="2">
+        <h4 class="bg-secondary text-white p-2 rounded">
+            Qualificação (<span class="count">0</span>)
+        </h4>
+        <div class="kanban-list bg-light"></div>
+    </div>
+
+    <div class="col kanban-column" data-stage-id="3">
+        <h4 class="bg-secondary text-white p-2 rounded">
+            Proposta (<span class="count">0</span>)
+        </h4>
+        <div class="kanban-list bg-light"></div>
+    </div>
+
+    <div class="col kanban-column" data-stage-id="4">
+        <h4 class="bg-secondary text-white p-2 rounded">
+            Negociação (<span class="count">0</span>)
+        </h4>
+        <div class="kanban-list bg-light"></div>
+    </div>
+
+    <div class="col kanban-column" data-stage-id="5">
+        <h4 class="bg-secondary text-white p-2 rounded">
+            Fechado (<span class="count">0</span>)
+        </h4>
+        <div class="kanban-list bg-light"></div>
+    </div>
+
 </div>
 
 <style>
@@ -123,18 +141,19 @@
     }
 
     // ---------- SORTABLE ----------
-    stages.forEach(col => {
+       stages.forEach(col => {
         new Sortable(col.querySelector('.kanban-list'), {
             group: 'pipeline',
             animation: 150,
             onEnd: function (evt) {
-                const dealId = parseInt(evt.item.dataset.id);
-                const newStageId = parseInt(
+                const dealId = Number(evt.item.dataset.id);
+                const newStageId = Number(
                     evt.to.closest('.kanban-column').dataset.stageId
                 );
 
-                const deals = getDeals();
+                let deals = getDeals();
                 const deal = deals.find(d => d.id === dealId);
+
                 if (deal) {
                     deal.stageId = newStageId;
                     saveDeals(deals);
@@ -144,6 +163,7 @@
             }
         });
     });
+
 
     // ---------- ADD CARD ----------
     document.getElementById('addCardBtn').addEventListener('click', () => {
